@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.1.0 - Unreleased
+## 0.1.0-beta.1 / Python 0.1.0b1 - Unreleased
+
+- MIT license, author/maintainer metadata, and project links in installable packages.
+- Arduino/PlatformIO/CMake source ZIP, Python wheel and source distribution, and SHA-256 checksums.
+- Installation guide and repeatable beta package preparation with package content checks.
 
 - Allocation-free typed C/C++ reading helpers with bounded JSON formatting and text escaping.
 - Optional live CLI readings, capture statistics, and explicit serial disconnect messages.

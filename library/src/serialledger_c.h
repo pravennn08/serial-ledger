@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-#define SL_VERSION "0.1.0"
+#define SL_VERSION "0.1.0-beta.1"
 #define SL_MAX_LINE_BYTES 4096u
 #define SL_MAX_DECIMAL_PLACES 6u
 #define SL_MAX_FLOAT_MAGNITUDE 1000000000.0

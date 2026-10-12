@@ -10,6 +10,7 @@ from time import monotonic
 import serial
 from serial.tools import list_ports
 
+from . import __version__
 from .export import export_xlsx
 from .recording import LineFramer, Recorder
 
@@ -87,6 +88,7 @@ def demo(output):
 
 def main():
     parser = argparse.ArgumentParser(prog="serial-ledger")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("ports", help="List detected serial ports")
     capture = commands.add_parser(

@@ -10,7 +10,11 @@ The host matrix uses Ubuntu 24.04 and Windows Server 2022, each with Python 3.11
 the dependencies from `uv.lock`.
 
 Each job runs Ruff, the Python integration tests, a Debug C/C++ build with native
-tests, the command-line loopback demo, and Python wheel/source distribution builds.
+tests, the command-line loopback demo, and beta package builds/content checks.
+The package step verifies version consistency and MIT license inclusion, then
+creates Python wheel/source packages, the board-library ZIP, and checksums. An
+isolated wheel install runs the console entry point, CLI version/help, and loopback
+CSV/XLSX demo. The source distribution is then installed and its demo checked too.
 Windows uses MSVC and Linux uses the runner's default C/C++ compiler. The demo
 checks serial capture through pySerial loopback and creates an Excel workbook.
 
@@ -39,7 +43,7 @@ Obsolete runs on the same branch or pull request are cancelled when a newer run 
 ## Local checks
 
 On Windows, run `scripts/setup.ps1` from the project terminal for the host build,
-tests, and lint. To check packaging, run `uv build --wheel` and `uv build --sdist`.
+tests, and lint. To check packaging, run `uv run --locked python scripts/package_release.py`.
 Board compilation requires the corresponding Arduino CLI and core installation.
 
 References: [uv Actions integration](https://docs.astral.sh/uv/guides/integration/github/),

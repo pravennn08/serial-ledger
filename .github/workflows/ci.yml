@@ -39,7 +39,7 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked
       - name: Lint Python
-        run: uv run --locked --no-sync ruff check desktop tests/python
+        run: uv run --locked --no-sync ruff check desktop tests/python scripts/package_release.py
       - name: Test Python recording and Excel export
         run: uv run --locked --no-sync python -m unittest discover -s tests/python -v
       - name: Configure C/C++
@@ -52,10 +52,25 @@ jobs:
         run: uv run --locked --no-sync ctest --test-dir build/ci -C Debug --output-on-failure
       - name: Run CLI loopback demo
         run: uv run --locked --no-sync python -m serial_ledger demo --output data/ci-demo.csv
-      - name: Build Python wheel
-        run: uv build --wheel
-      - name: Build Python source distribution
-        run: uv build --sdist
+      - name: Build and verify beta release packages
+        run: uv run --locked --no-sync python scripts/package_release.py
+      - name: Install wheel and smoke-test the packaged CLI
+        run: |
+          uv venv work/package-smoke
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            package_python="work/package-smoke/Scripts/python.exe"
+            package_cli="work/package-smoke/Scripts/serial-ledger.exe"
+          else
+            package_python="work/package-smoke/bin/python"
+            package_cli="work/package-smoke/bin/serial-ledger"
+          fi
+          uv pip install --python "$package_python" ./dist/serial_ledger-0.1.0b1-py3-none-any.whl
+          "$package_cli" --version
+          "$package_python" -I -m serial_ledger --version
+          "$package_python" -I -m serial_ledger --help
+          "$package_python" -I -m serial_ledger demo --output work/package-smoke/demo.csv
+          uv pip install --python "$package_python" --reinstall-package serial-ledger ./dist/serial_ledger-0.1.0b1.tar.gz
+          "$package_python" -I -m serial_ledger demo --output work/package-smoke/sdist-demo.csv
 
   firmware:
     name: Firmware / ${{ matrix.board }}

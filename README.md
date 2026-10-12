@@ -2,7 +2,7 @@
 <h1> SerialLedger</h1>
 
 Portable C/C++ telemetry transport plus a Python serial logger and Excel exporter.
-This is the initial development setup, not a finished GUI or publish-ready release.
+v0.1 beta 1: a CLI companion and portable board library. The beta API may change.
 
 ![C](https://img.shields.io/badge/Baremetal-A8B9CC?logo=c&logoColor=black)
 ![C++](https://img.shields.io/badge/C%2B%2B-00599C?logo=cplusplus&logoColor=white)
@@ -15,7 +15,14 @@ This is the initial development setup, not a finished GUI or publish-ready relea
 
 </div>
 
-## Quick start on Windows
+## Install the beta
+
+See [installation instructions](docs/INSTALLATION.md) for the Python CLI,
+Arduino ZIP, PlatformIO, and C/C++ source library. Python 3.11+ and uv are enough
+to run the CLI; a C++ compiler is needed only for native development.
+Packages are prepared locally; registry publication is a separate step.
+
+## Developer quick start on Windows
 
 Prerequisites: Visual Studio 2022 C/C++ build tools, Python 3.11+, Git, and uv.
 Open this repository in VS Code and run these commands in its terminal:
@@ -121,6 +128,6 @@ and Arduino Uno/ESP32 example compilation on pushes and pull requests. See
 - `docs/`: architecture and the initial wire format.
 - `scripts/`: repeatable Windows setup.
 
-Before publishing: select a license, choose a repository URL, complete Arduino
-maintainer metadata, test supported boards, and define the first stable telemetry API.
-See `docs/ARCHITECTURE.md` and `docs/PROTOCOL.md`.
+The project uses the [MIT license](LICENSE.md). See [beta release preparation](docs/RELEASING.md)
+for package builds and the release checklist, and [the changelog](CHANGELOG.md) for scope.
+Architecture and wire format are documented in `docs/ARCHITECTURE.md` and `docs/PROTOCOL.md`.

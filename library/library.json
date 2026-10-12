@@ -1,0 +1,18 @@
+{
+  "name": "SerialLedger",
+  "version": "0.1.0-beta.1",
+  "description": "Allocation-free C99 and C++11 helpers for newline-delimited serial telemetry.",
+  "keywords": ["serial", "telemetry", "arduino", "esp32"],
+  "homepage": "https://github.com/pravennn08/serial-ledger",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pravennn08/serial-ledger.git"
+  },
+  "authors": [
+    {"name": "Raven Magbanua", "email": "magbanuaraven08@gmail.com", "maintainer": true}
+  ],
+  "license": "MIT",
+  "frameworks": "*",
+  "platforms": "*",
+  "headers": ["SerialLedger.h", "serialledger_c.h"]
+}
