@@ -1,0 +1,96 @@
+name: Publish Python
+
+on:
+  workflow_dispatch:
+    inputs:
+      registry:
+        description: Publish to TestPyPI first, then PyPI
+        required: true
+        type: choice
+        options: [testpypi, pypi]
+        default: testpypi
+      release_tag:
+        description: Existing GitHub release tag with tested Python assets
+        required: true
+        type: string
+        default: v0.1.0-beta.1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-python-${{ inputs.registry }}-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to ${{ inputs.registry }}
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: ${{ inputs.registry }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      REGISTRY: ${{ inputs.registry }}
+    steps:
+      - name: Check out publishing helpers
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.15"
+          python-version: "3.11"
+      - name: Select release version and registry
+        shell: bash
+        run: |
+          version="$(python -I scripts/verify_python_release.py --tag "$RELEASE_TAG" --print-version)"
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+          case "$REGISTRY" in
+            testpypi)
+              echo "PUBLISH_URL=https://test.pypi.org/legacy/" >> "$GITHUB_ENV"
+              echo "SIMPLE_URL=https://test.pypi.org/simple/" >> "$GITHUB_ENV"
+              ;;
+            pypi)
+              echo "PUBLISH_URL=https://upload.pypi.org/legacy/" >> "$GITHUB_ENV"
+              echo "SIMPLE_URL=https://pypi.org/simple/" >> "$GITHUB_ENV"
+              ;;
+            *) echo "Unknown registry" >&2; exit 1 ;;
+          esac
+      - name: Download tested assets from the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY"
+          --dir release-dist
+          --pattern "serial_ledger-${PACKAGE_VERSION}-py3-none-any.whl"
+          --pattern "serial_ledger-${PACKAGE_VERSION}.tar.gz"
+          --pattern SHA256SUMS.txt
+      - name: Verify release checksums, metadata, and entry point
+        run: python -I scripts/verify_python_release.py --tag "$RELEASE_TAG" --directory release-dist
+      - name: Require matching files on TestPyPI before production
+        if: inputs.registry == 'pypi'
+        run: >-
+          python -I scripts/verify_python_release.py --tag "$RELEASE_TAG"
+          --directory release-dist --require-testpypi
+      - name: Publish with uv Trusted Publishing
+        run: >-
+          uv publish --trusted-publishing always
+          --publish-url "$PUBLISH_URL" --check-url "$SIMPLE_URL"
+          "release-dist/serial_ledger-${PACKAGE_VERSION}-py3-none-any.whl"
+          "release-dist/serial_ledger-${PACKAGE_VERSION}.tar.gz"
+      - name: Install from the selected registry and run the CLI demo
+        shell: bash
+        run: |
+          uv venv --python 3.11 work/registry-smoke
+          package_python="work/registry-smoke/bin/python"
+          # Dependencies come from PyPI; only our package comes from the selected registry.
+          uv pip install --python "$package_python" --index-url https://pypi.org/simple/ "pyserial>=3.5,<4" "openpyxl>=3.1,<4"
+          uv pip install --python "$package_python" --no-deps --index-url "$SIMPLE_URL" "serial-ledger==$PACKAGE_VERSION"
+          work/registry-smoke/bin/serial-ledger --version
+          "$package_python" -I -m serial_ledger demo --output work/registry-smoke/demo.csv

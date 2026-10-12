@@ -39,7 +39,7 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked
       - name: Lint Python
-        run: uv run --locked --no-sync ruff check desktop tests/python scripts/package_release.py
+        run: uv run --locked --no-sync ruff check desktop tests/python scripts/package_release.py scripts/verify_python_release.py
       - name: Test Python recording and Excel export
         run: uv run --locked --no-sync python -m unittest discover -s tests/python -v
       - name: Configure C/C++
@@ -54,6 +54,8 @@ jobs:
         run: uv run --locked --no-sync python -m serial_ledger demo --output data/ci-demo.csv
       - name: Build and verify beta release packages
         run: uv run --locked --no-sync python scripts/package_release.py
+      - name: Verify publishable Python assets
+        run: uv run --locked --no-sync python scripts/verify_python_release.py --tag v0.1.0-beta.1
       - name: Install wheel and smoke-test the packaged CLI
         run: |
           uv venv work/package-smoke

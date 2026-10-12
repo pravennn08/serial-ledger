@@ -40,7 +40,8 @@ the CLI loopback demo. Local package preparation does not create a tag or publis
    release named **SerialLedger v0.1 beta 1**, marked **pre-release**. Attach the
    four prepared assets and use the draft notes below.
 
-Publishing to PyPI, Arduino Library Manager, and PlatformIO is separate. Confirm
+For Python registry publication, follow [TestPyPI and PyPI publishing](PUBLISHING.md).
+Publishing to Arduino Library Manager and PlatformIO is separate. Confirm
 package-name availability and ownership first. Arduino Library Manager expects
 library metadata at the library repository root; this monorepo keeps it under
 `library/`, so a dedicated board-library repository/export needs preparation
