@@ -91,6 +91,20 @@ jobs:
           package_python="work/registry-smoke/bin/python"
           # Dependencies come from PyPI; only our package comes from the selected registry.
           uv pip install --python "$package_python" --index-url https://pypi.org/simple/ "pyserial>=3.5,<4" "openpyxl>=3.1,<4"
-          uv pip install --python "$package_python" --no-deps --index-url "$SIMPLE_URL" "serial-ledger==$PACKAGE_VERSION"
+          # Publishing may leave a cached 404 or precede index/CDN visibility.
+          # Refresh our package on every attempt; never fall back to another registry.
+          for attempt in 1 2 3 4 5 6; do
+            if uv pip install --python "$package_python" --no-deps \
+              --refresh-package serial-ledger --index-url "$SIMPLE_URL" \
+              "serial-ledger==$PACKAGE_VERSION"; then
+              break
+            fi
+            if [ "$attempt" -eq 6 ]; then
+              echo "Could not install serial-ledger==$PACKAGE_VERSION from $SIMPLE_URL after 6 attempts." >&2
+              exit 1
+            fi
+            echo "Registry install attempt $attempt failed; refreshing and retrying in 10 seconds."
+            sleep 10
+          done
           work/registry-smoke/bin/serial-ledger --version
           "$package_python" -I -m serial_ledger demo --output work/registry-smoke/demo.csv

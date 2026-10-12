@@ -47,11 +47,16 @@ The last step installs `serial-ledger==0.1.0b1` from TestPyPI in an isolated
 environment and runs the CLI and loopback CSV/XLSX demo. Dependencies are installed
 from normal PyPI first; the TestPyPI package is installed with `--no-deps`.
 This avoids depending on copies of pySerial/openpyxl in the test registry.
+The package install refreshes uv's cached index metadata on every attempt and
+retries up to six times, ten seconds apart, to allow a new upload to become visible.
+It keeps using the selected registry and does not fall back to a local wheel.
 
 Check the run is green and open
 <https://test.pypi.org/project/serial-ledger/0.1.0b1/>.
 If an upload succeeds but a later smoke test fails, fix the test/environment and
-rerun; do not delete the published version or change files under the same version.
+start a new workflow run on `main`; do not delete the published version or change
+files under the same version. After pushing a workflow fix, use **Run workflow**
+rather than rerunning an old job, which would use the old workflow revision.
 
 ## Publish the same files to PyPI
 
