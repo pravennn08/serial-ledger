@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "serial-ledger"
+version = "0.1.0"
+description = "SerialLedger serial capture and spreadsheet export companion"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["pyserial>=3.5,<4", "openpyxl>=3.1,<4"]
+
+[project.scripts]
+serial-ledger = "serial_ledger.cli:main"
+
+[dependency-groups]
+dev = ["cmake>=3.28,<5", "ruff>=0.12,<1"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["desktop/src/serial_ledger"]
+
+[tool.hatch.build.targets.sdist]
+include = ["desktop/src/serial_ledger", "README.md", "pyproject.toml"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

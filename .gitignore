@@ -1,0 +1,13 @@
+.venv/
+build/
+data/
+work/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ruff_cache/
+.pytest_cache/
+dist/
+CMakeUserPresets.json
+.DS_Store
+Thumbs.db

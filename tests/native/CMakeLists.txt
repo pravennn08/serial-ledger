@@ -1,0 +1,6 @@
+add_executable(serialledger_c_test test_core.c)
+target_link_libraries(serialledger_c_test PRIVATE SerialLedger::Core)
+add_test(NAME c_transport COMMAND serialledger_c_test)
+add_executable(serialledger_cpp_test test_cpp.cpp)
+target_link_libraries(serialledger_cpp_test PRIVATE SerialLedger::Cpp)
+add_test(NAME cpp_wrapper COMMAND serialledger_cpp_test)

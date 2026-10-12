@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    name: Host / ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+        python: ["3.11", "3.13"]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.15"
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - name: Install locked dependencies
+        run: uv sync --locked
+      - name: Lint Python
+        run: uv run --locked --no-sync ruff check desktop tests/python
+      - name: Test Python recording and Excel export
+        run: uv run --locked --no-sync python -m unittest discover -s tests/python -v
+      - name: Configure C/C++
+        run: >-
+          uv run --locked --no-sync cmake -S . -B build/ci
+          -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug
+      - name: Build C/C++ library and examples
+        run: uv run --locked --no-sync cmake --build build/ci --config Debug --parallel 2
+      - name: Test C/C++
+        run: uv run --locked --no-sync ctest --test-dir build/ci -C Debug --output-on-failure
+      - name: Run CLI loopback demo
+        run: uv run --locked --no-sync python -m serial_ledger demo --output data/ci-demo.csv
+      - name: Build Python wheel
+        run: uv build --wheel
+      - name: Build Python source distribution
+        run: uv build --sdist
+
+  firmware:
+    name: Firmware / ${{ matrix.board }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: Arduino Uno
+            fqbn: arduino:avr:uno
+            core: arduino:avr@1.8.8
+          - board: ESP32
+            fqbn: esp32:esp32:esp32
+            core: esp32:esp32@3.3.12
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Arduino CLI
+        uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02 # v2
+        with:
+          version: "1.5.1"
+      - name: Initialize Arduino CLI configuration
+        run: arduino-cli config init
+      - name: Configure ESP32 board index
+        if: matrix.board == 'ESP32'
+        run: >-
+          arduino-cli config add board_manager.additional_urls
+          https://espressif.github.io/arduino-esp32/package_esp32_index.json
+      - name: Update board indexes
+        run: arduino-cli core update-index
+      - name: Install board toolchain
+        env:
+          ARDUINO_CORE: ${{ matrix.core }}
+        run: arduino-cli core install "$ARDUINO_CORE"
+      - name: Compile telemetry example
+        env:
+          ARDUINO_FQBN: ${{ matrix.fqbn }}
+        run: >-
+          arduino-cli compile --fqbn "$ARDUINO_FQBN" --warnings all
+          --library "$GITHUB_WORKSPACE/library"
+          library/examples/BasicTelemetry
