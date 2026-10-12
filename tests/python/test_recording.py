@@ -57,6 +57,41 @@ class RecordingTests(unittest.TestCase):
                 Recorder(path)
             self.assertEqual(path.read_text(encoding="utf-8"), "existing")
 
+    def test_mixed_serial_output_preserves_raw_and_recovers_in_export(self):
+        lines = [
+            b'{"seq":0,"time_ms":1000}',
+            b"[DEBUG] mixed-output test",
+            b'{"temperature_C":25.4',
+            b'{"temperature_C":26.5,"humidity_pct":60}',
+        ]
+        wire = b"\r\n".join(lines) + b"\r\n"
+        with tempfile.TemporaryDirectory() as directory:
+            csv_path = Path(directory) / "mixed.csv"
+            xlsx_path = Path(directory) / "mixed.xlsx"
+            framer = LineFramer()
+            with Recorder(csv_path) as recorder:
+                for chunk in [wire[:5], wire[5:59], wire[59:]]:
+                    for line in framer.feed(chunk):
+                        recorder.append(line)
+            with csv_path.open(newline="", encoding="utf-8") as stream:
+                captured = list(csv.DictReader(stream))
+            self.assertEqual([row["raw"] for row in captured], [line.decode() for line in lines])
+            self.assertEqual([row["parse_status"] for row in captured], ["ok", "raw", "raw", "ok"])
+            self.assertEqual(export_xlsx(csv_path, xlsx_path), 4)
+            workbook = load_workbook(xlsx_path)
+            try:
+                rows = list(workbook["Readings"].iter_rows(values_only=True))
+                positions = {key: index for index, key in enumerate(rows[0])}
+                self.assertEqual(rows[1][positions["value.seq"]], 0)
+                for row, expected in zip(rows[2:4], lines[1:3]):
+                    self.assertEqual(row[positions["raw"]], expected.decode())
+                    self.assertEqual(row[positions["parse_status"]], "raw")
+                    self.assertTrue(all(value is None for value in row[3:]))
+                self.assertEqual(rows[4][positions["value.temperature_C"]], 26.5)
+                self.assertEqual(rows[4][positions["value.humidity_pct"]], 60)
+            finally:
+                workbook.close()
+
     def test_loopback_demo_exports_three_samples(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "demo.csv"

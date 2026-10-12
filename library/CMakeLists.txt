@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28)
 project(SerialLedgerCore VERSION 0.1.0 LANGUAGES C CXX)
-add_library(serialledger_core STATIC src/serialledger.c)
+add_library(serialledger_core STATIC src/serialledger.c src/reading.c)
 add_library(SerialLedger::Core ALIAS serialledger_core)
 target_include_directories(serialledger_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set_target_properties(serialledger_core PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED YES C_EXTENSIONS NO)

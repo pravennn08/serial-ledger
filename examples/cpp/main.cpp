@@ -5,5 +5,8 @@ static size_t write_stdout(void *user, const unsigned char *data, size_t size) {
 }
 int main() {
     SerialLedger logger(write_stdout, stdout);
-    return logger.writeLine("{\"temperature_C\":25.4,\"humidity_pct\":61.2}") == SL_OK ? 0 : 1;
+    SerialLedgerReading reading;
+    reading.addFloat("temperature_C", 25.4);
+    reading.addFloat("humidity_pct", 61.2);
+    return logger.writeReading(reading) == SL_OK ? 0 : 1;
 }

@@ -15,7 +15,10 @@ arrays are retained as raw messages rather than expanded into spreadsheet column
 Units are currently encoded in field names. A board may add `seq` and `time_ms`, but
 sequence validation, clock synchronization, and schema messages are not implemented.
 
-The C core checks line framing and length, not JSON syntax. The PC parser recognizes
+The typed C/C++ reading builder generates this flat JSON format and checks field
+types, text encoding, buffer capacity, and number ranges. Its float output uses fixed
+decimal places and never sends NaN or infinity. See [the API guide](BOARD_API.md).
+The manual line transport checks framing and length, not JSON syntax. The PC parser recognizes
 flat JSON readings and records other lines as `raw`. Invalid UTF-8 is decoded using
 replacement characters and marked raw. Oversized incoming lines are discarded until
 LF, and the recorder reports a dropped count. Incomplete lines remain buffered across

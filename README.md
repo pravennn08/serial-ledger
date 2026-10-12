@@ -1,7 +1,19 @@
-# SerialLedger
+<div align="center">
+<h1> SerialLedger</h1>
 
 Portable C/C++ telemetry transport plus a Python serial logger and Excel exporter.
 This is the initial development setup, not a finished GUI or publish-ready release.
+
+![C](https://img.shields.io/badge/Baremetal-A8B9CC?logo=c&logoColor=black)
+![C++](https://img.shields.io/badge/C%2B%2B-00599C?logo=cplusplus&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![Arduino](https://img.shields.io/badge/Arduino-00878F?logo=arduino&logoColor=white)
+![ESP32](https://img.shields.io/badge/ESP32-E7352C?logo=espressif&logoColor=white)
+[![CI](https://github.com/pravennn08/serial-ledger/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pravennn08/serial-ledger/actions/workflows/ci.yml)
+![pySerial](https://img.shields.io/badge/pySerial-3776AB)
+[![uv](https://img.shields.io/badge/uv-DE5FE9?logo=uv&logoColor=white)](https://docs.astral.sh/uv/)
+
+</div>
 
 ## Quick start on Windows
 
@@ -28,6 +40,13 @@ It does not require an Arduino, ESP, Excel installation, or an open Excel window
 
 ## Real hardware
 
+For an ESP32-WROOM-32 using PlatformIO, open `examples/platformio/esp32` in VS Code.
+Its README covers build/upload, a no-sensor telemetry check, and the unplug test.
+For an Uno or classic ATmega328P Nano, open `examples/platformio/arduino` instead.
+That project includes Uno and both Nano bootloader configurations.
+For real DHT11 temperature/humidity readings, use `examples/platformio/dht`.
+Its README covers wiring, two-second sampling, and Uno/Nano/ESP32 configurations.
+
 ```powershell
 uv run python -m serial_ledger ports
 uv run python -m serial_ledger record --port COM3 --baud 115200 --output data/session.csv
@@ -36,6 +55,12 @@ uv run python -m serial_ledger export data/session.csv data/session.xlsx
 ```
 
 Use the port reported by `ports`. Close other serial monitors before connecting.
+Add `--live` to display each saved record with its UTC timestamp and `ok`/`raw` status.
+Device control characters are escaped in terminal output; the CSV preserves the
+received text. Stopping prints parsed/raw totals, duration, output path, oversized
+line count, and any incomplete final line. A lost serial connection prints a clear
+message, preserves completed CSV records, and exits with code 1. Restart with a new
+filename after reconnecting. Ctrl+C stops normally with exit code 0.
 Records use UTC receive timestamps. Raw/debug messages remain in the CSV. Flat JSON
 readings become additional typed columns in the workbook. Existing output files are
 never overwritten. This exports a saved workbook; it does not update an open Excel sheet.
@@ -44,21 +69,35 @@ never overwritten. This exports a saved workbook; it does not update an open Exc
 
 `library/src/serialledger_c.h` is the C99 API. `library/src/SerialLedger.h` is the
 C++11 wrapper with an Arduino `Print` adapter. Both use the same allocation-free C
-implementation. Applications currently format their own JSON and call `writeLine()`
-or `sl_write_line()`; automatic column definitions and typed row helpers are future work.
+implementation. Typed reading helpers build flat JSON with integer, float, boolean,
+string, and null fields in fixed buffers. See [the board API guide](docs/BOARD_API.md)
+for C examples, buffer sizing, and status handling. Manual `writeLine()` and
+`sl_write_line()` remain available for debug text or existing firmware.
 
 ```cpp
 #include <SerialLedger.h>
 SerialLedger logger(Serial);
-// After Serial.begin(115200):
-logger.writeLine("{\"temperature_C\":25.4,\"humidity_pct\":61.2}");
+void setup() {
+    Serial.begin(115200);
+}
+void loop() {
+    SerialLedgerReading reading;
+    reading.addFloat("temperature_C", 25.4); // Replace with a sensor reading.
+    reading.addFloat("humidity_pct", 61.2);
+    if (logger.writeReading(reading) != SL_OK) {
+        logger.writeLine("[ERROR] Could not send reading");
+    }
+    delay(1000);
+}
 ```
 
 The native examples are in `examples/c` and `examples/cpp`. The Arduino sketch is in
 `library/examples/BasicTelemetry`. For manual Arduino installation, copy the contents
 of `library/` into your sketchbook's `libraries/SerialLedger/` directory. Arduino CLI
 and board packages are not installed by this baseline setup; install the toolchain for
-your selected board before compiling/uploading the sketch. Hardware is not yet verified.
+your selected board before compiling/uploading the sketch. Recording and CSV/XLSX
+export have been confirmed on ESP32-WROOM-32, Uno, and classic Nano hardware.
+The Uno/Nano project's README also describes the optional mixed-output test.
 
 In another CMake project, use `add_subdirectory(path/to/serial-ledger/library)` and link
 `SerialLedger::Core` for C or `SerialLedger::Cpp` for C++.

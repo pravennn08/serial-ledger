@@ -64,14 +64,22 @@ class Recorder:
         self.writer.writerow(LOG_COLUMNS)
         self.file.flush()
         self.count = 0
+        self.ok_count = 0
+        self.raw_count = 0
 
     def append(self, line: bytes):
         raw = line.decode("utf-8", errors="replace")
         valid_utf8 = raw.encode("utf-8") == line
         status = "ok" if valid_utf8 and parse_reading(raw) is not None else "raw"
-        self.writer.writerow([datetime.now(timezone.utc).isoformat(), status, raw])
+        received_at = datetime.now(timezone.utc).isoformat()
+        self.writer.writerow([received_at, status, raw])
         self.file.flush()
         self.count += 1
+        if status == "ok":
+            self.ok_count += 1
+        else:
+            self.raw_count += 1
+        return dict(zip(LOG_COLUMNS, [received_at, status, raw]))
 
     def close(self):
         self.file.close()

@@ -5,6 +5,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from time import monotonic
 
 import serial
 from serial.tools import list_ports
@@ -18,23 +19,52 @@ def session_path():
     return Path("data") / f"session_{stamp}.csv"
 
 
-def record(port, baud, output):
+def record(port, baud, output, live=False):
     framer = LineFramer()
-    with serial.serial_for_url(port, baudrate=baud, timeout=0.2) as connection:
+    try:
+        connection = serial.serial_for_url(port, baudrate=baud, timeout=0.2)
+    except (serial.SerialException, OSError) as error:
+        print(f"Cannot open serial port {port}: {error}", file=sys.stderr)
+        return 1
+    exit_code = 0
+    with connection:
         with Recorder(output) as recorder:
+            started = monotonic()
             print(f"Recording {port} at {baud} baud to {output}. Press Ctrl+C to stop.")
             try:
                 while True:
-                    chunk = connection.read(min(connection.in_waiting or 1, 4096))
+                    try:
+                        chunk = connection.read(min(connection.in_waiting or 1, 4096))
+                    except (serial.SerialException, OSError) as error:
+                        print(f"\nSerial connection lost on {port}: {error}", file=sys.stderr)
+                        print(
+                            "Completed records remain in the CSV. "
+                            "Reconnect and start a new session."
+                        )
+                        exit_code = 1
+                        break
                     for line in framer.feed(chunk):
-                        recorder.append(line)
+                        row = recorder.append(line)
+                        if live:
+                            # Device control bytes must not act as terminal escape sequences.
+                            text = row["raw"].encode("unicode_escape").decode("ascii")
+                            print(
+                                f'{row["received_at"]} [{row["parse_status"]}] {text}', flush=True
+                            )
             except KeyboardInterrupt:
+                print("\nRecording stopped by user.")
+            finally:
+                elapsed = monotonic() - started
                 print(
-                    f"\nSaved {recorder.count} records; "
-                    f"discarded {framer.dropped} oversized lines."
+                    f"Saved {recorder.count} records ({recorder.ok_count} parsed, "
+                    f"{recorder.raw_count} raw) in {elapsed:.1f}s to {output}."
                 )
+                print(f"Discarded {framer.dropped} oversized lines.")
                 if framer.pending:
-                    print("An incomplete final line was left unrecorded.")
+                    print(
+                        f"An incomplete final line ({len(framer.pending)} bytes) was not recorded."
+                    )
+    return exit_code
 
 
 def demo(output):
@@ -59,11 +89,16 @@ def main():
     parser = argparse.ArgumentParser(prog="serial-ledger")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("ports", help="List detected serial ports")
-    capture = commands.add_parser("record", help="Record newline-delimited serial output")
+    capture = commands.add_parser(
+        "record", help="Record newline-delimited serial output"
+    )
     capture.add_argument("--port", required=True)
     capture.add_argument("--baud", type=int, default=115200)
     capture.add_argument("--output", type=Path)
-    example = commands.add_parser("demo", help="Run a hardware-free serial loopback demo")
+    capture.add_argument("--live", action="store_true", help="Show saved records in the terminal")
+    example = commands.add_parser(
+        "demo", help="Run a hardware-free serial loopback demo"
+    )
     example.add_argument("--output", type=Path)
     export = commands.add_parser("export", help="Export a saved session to Excel")
     export.add_argument("source", type=Path)
@@ -79,7 +114,7 @@ def main():
         elif args.command == "record":
             if args.baud <= 0:
                 parser.error("--baud must be positive")
-            record(args.port, args.baud, args.output or session_path())
+            return record(args.port, args.baud, args.output or session_path(), live=args.live)
         elif args.command == "demo":
             demo(args.output or session_path())
         else:
