@@ -10,6 +10,7 @@ v0.1 beta 1: a CLI companion and portable board library. The beta API may change
 ![Arduino](https://img.shields.io/badge/Arduino-00878F?logo=arduino&logoColor=white)
 ![ESP32](https://img.shields.io/badge/ESP32-E7352C?logo=espressif&logoColor=white)
 [![CI](https://github.com/pravennn08/serial-ledger/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pravennn08/serial-ledger/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/pravennn08/serial-ledger?include_prereleases&sort=semver)](https://github.com/pravennn08/serial-ledger/releases)
 ![pySerial](https://img.shields.io/badge/pySerial-3776AB)
 [![uv](https://img.shields.io/badge/uv-DE5FE9?logo=uv&logoColor=white)](https://docs.astral.sh/uv/)
 
@@ -20,7 +21,27 @@ v0.1 beta 1: a CLI companion and portable board library. The beta API may change
 See [installation instructions](docs/INSTALLATION.md) for the Python CLI,
 Arduino ZIP, PlatformIO, and C/C++ source library. Python 3.11+ and uv are enough
 to run the CLI; a C++ compiler is needed only for native development.
-Packages are prepared locally; registry publication is a separate step.
+The Python beta is published on [PyPI](https://pypi.org/project/serial-ledger/0.1.0b1/):
+
+```sh
+uv tool install --python 3.11 "serial-ledger==0.1.0b1"
+serial-ledger demo
+```
+
+The C/C++ board library is published on
+[PlatformIO](https://registry.platformio.org/libraries/engrpraven08/SerialLedger):
+
+```ini
+lib_deps =
+    engrpraven08/SerialLedger@0.1.0-beta.1
+```
+
+Arduino Library Manager registration was accepted in
+[PR #9367](https://github.com/arduino/library-registry/pull/9367).
+Search for **SerialLedger** by **Raven Magbanua** after the index refreshes;
+the release ZIP can also be installed manually. The board-library repository is
+[SerialLedger](https://github.com/pravennn08/SerialLedger). See its
+[changelog](library/CHANGELOG.md) and [publishing guide](docs/BOARD_PUBLISHING.md).
 
 ## Developer quick start on Windows
 

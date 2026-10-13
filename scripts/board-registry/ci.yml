@@ -1,0 +1,69 @@
+name: Board library CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check Arduino Library Manager submission requirements
+        run: |
+          curl --fail --location --retry 3 --output /tmp/arduino-lint.tar.gz \
+            https://github.com/arduino/arduino-lint/releases/download/1.3.0/arduino-lint_1.3.0_Linux_64bit.tar.gz
+          echo "181671ca174988f2601e1cdf2b40a552682db8eaa047de33117e67e70338b63e  /tmp/arduino-lint.tar.gz" | sha256sum --check
+          mkdir -p /tmp/serialledger-lint
+          tar -xzf /tmp/arduino-lint.tar.gz -C /tmp/serialledger-lint
+          /tmp/serialledger-lint/arduino-lint --project-type library --compliance specification --library-manager submit "$GITHUB_WORKSPACE"
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: "0.12.15"
+          python-version: "3.11"
+      - name: Check PlatformIO package
+        run: uvx --from platformio==6.2.0 pio pkg pack . --output /tmp/SerialLedger.tar.gz
+
+  firmware:
+    name: Compile / ${{ matrix.board }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: Uno
+            fqbn: arduino:avr:uno
+            core: arduino:avr@1.8.8
+          - board: Nano
+            fqbn: arduino:avr:nano:cpu=atmega328
+            core: arduino:avr@1.8.8
+          - board: ESP32
+            fqbn: esp32:esp32:esp32
+            core: esp32:esp32@3.3.12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: arduino/setup-arduino-cli@81d310742121c928ea9c8bbd407b4217b432ae02 # v2
+        with:
+          version: "1.5.1"
+      - name: Install board core
+        env:
+          ARDUINO_CORE: ${{ matrix.core }}
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install "$ARDUINO_CORE"
+      - name: Compile packaged example
+        env:
+          ARDUINO_FQBN: ${{ matrix.fqbn }}
+        run: arduino-cli compile --fqbn "$ARDUINO_FQBN" --warnings all --library "$GITHUB_WORKSPACE" examples/BasicTelemetry

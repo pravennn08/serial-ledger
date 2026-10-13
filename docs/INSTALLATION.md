@@ -4,18 +4,20 @@ SerialLedger has two separately installed parts: the **Python CLI on your comput
 and the **C/C++ library in your board firmware**. The board sends readings; the
 computer creates CSV and Excel files. Excel itself is not required.
 
-These instructions work with the locally prepared packages. Once a GitHub beta
-release is published, download the same files from its assets. The project has
-not yet been submitted to PyPI, Arduino Library Manager, or the PlatformIO registry.
+The Python beta is published on PyPI. The board-library ZIP is available in the
+GitHub beta release. The C/C++ library is published on PlatformIO; Arduino Library
+Manager registration was accepted in
+[PR #9367](https://github.com/arduino/library-registry/pull/9367).
+Refresh Library Manager and search for **SerialLedger** by **Raven Magbanua**.
+If indexing has not completed yet, Arduino IDE users can install the ZIP.
 
 ## Python CLI with uv
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/).
-Python 3.11+ is required; uv can provide Python if needed. From the folder containing
-the wheel, run:
+Python 3.11+ is required; uv can provide Python if needed. Run from any folder:
 
 ```sh
-uv tool install --python 3.11 ./serial_ledger-0.1.0b1-py3-none-any.whl
+uv tool install --python 3.11 "serial-ledger==0.1.0b1"
 serial-ledger --version
 serial-ledger --help
 serial-ledger demo
@@ -24,8 +26,14 @@ serial-ledger demo
 pySerial and openpyxl are installed automatically. You do not need Visual Studio,
 CMake, PlatformIO, or Arduino IDE to use the CLI. If uv reports that its tools
 directory is absent from PATH, run `uv tool update-shell` and open a new terminal.
-To replace a previous installation, use `uv tool install --force` with the new wheel.
+To replace a previous local-wheel installation with the PyPI package, use
+`uv tool install --reinstall --python 3.11 "serial-ledger==0.1.0b1"`.
+The downloaded wheel can still be installed with
+`uv tool install --python 3.11 ./serial_ledger-0.1.0b1-py3-none-any.whl`.
 To remove it, run `uv tool uninstall serial-ledger`.
+
+An installed uv tool has its own environment. Use `serial-ledger` directly;
+`uv run python -m serial_ledger` only works in a project that installs this package.
 
 ### Record a board and export
 
@@ -80,6 +88,15 @@ The resulting header path must be `libraries/SerialLedger/src/SerialLedger.h`.
 The library ZIP includes the license, example, CMake file, and board API guide.
 
 ## PlatformIO
+
+Add this to your environment's `platformio.ini` to install the published beta:
+
+```ini
+lib_deps =
+    engrpraven08/SerialLedger@0.1.0-beta.1
+```
+
+For a manual installation instead:
 
 Extract the library ZIP and copy the `SerialLedger/` folder into your PlatformIO
 project's `lib/` directory, giving `lib/SerialLedger/library.json` and

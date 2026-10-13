@@ -91,7 +91,8 @@ def main():
 
     board_zip = dist / f"SerialLedger-{board_version}.zip"
     files = [library / name for name in (
-        "CMakeLists.txt", "library.properties", "library.json", "README.md", "LICENSE.md"
+        "CMakeLists.txt", "library.properties", "library.json", "README.md",
+        "CHANGELOG.md", "LICENSE.md"
     )]
     for folder in ("src", "examples"):
         files.extend(sorted(path for path in (library / folder).rglob("*") if path.is_file()))

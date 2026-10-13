@@ -41,11 +41,11 @@ the CLI loopback demo. Local package preparation does not create a tag or publis
    four prepared assets and use the draft notes below.
 
 For Python registry publication, follow [TestPyPI and PyPI publishing](PUBLISHING.md).
-Publishing to Arduino Library Manager and PlatformIO is separate. Confirm
-package-name availability and ownership first. Arduino Library Manager expects
-library metadata at the library repository root; this monorepo keeps it under
-`library/`, so a dedicated board-library repository/export needs preparation
-before submitting it. The installable ZIP is sufficient for this beta.
+For Arduino Library Manager and PlatformIO, follow
+[board-library publishing](BOARD_PUBLISHING.md). The standalone export puts
+`library.properties` and `library.json` at the repository root, includes the API
+guide, and adds submission checks plus Uno/Nano/ESP32 firmware CI. It does not
+modify any already published Python files or the original beta release assets.
 
 ## Draft GitHub release notes
 
